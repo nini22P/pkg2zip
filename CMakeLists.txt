@@ -37,13 +37,18 @@ ${CMAKE_CURRENT_BINARY_DIR}/zrif2rif.py
 )
 
 if(HARDWARE_ACCELERATION)
-    if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL x86 OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL x86_64)
+    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86|x86_64|X86|AMD64)$")
         set(HARDWARE_ACCELERATION_SOURCE_FILES
         pkg2zip_aes_x86.c
         pkg2zip_crc32_x86.c
         )
-        set_source_files_properties(pkg2zip_aes_x86.c PROPERTIES COMPILE_FLAGS "-maes -mssse3 -MMD")
-        set_source_files_properties(pkg2zip_crc32_x86.c PROPERTIES COMPILE_FLAGS "-mpclmul -msse4 -MMD")
+        if(MSVC)
+            set_source_files_properties(pkg2zip_aes_x86.c PROPERTIES COMPILE_FLAGS "/arch:AVX")
+            set_source_files_properties(pkg2zip_crc32_x86.c PROPERTIES COMPILE_FLAGS "/arch:AVX")
+        else()
+            set_source_files_properties(pkg2zip_aes_x86.c PROPERTIES COMPILE_FLAGS "-maes -mssse3 -MMD")
+            set_source_files_properties(pkg2zip_crc32_x86.c PROPERTIES COMPILE_FLAGS "-mpclmul -msse4 -MMD")
+        endif()
     elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL aarch64)
         set(HARDWARE_ACCELERATION_SOURCE_FILES
         pkg2zip_aes_aarch64.c

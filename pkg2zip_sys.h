@@ -2,6 +2,9 @@
 
 #include "pkg2zip_utils.h"
 
+// on Windows argv is ANSI codepage, convert it to UTF-8
+void sys_get_command_line(int* argc, char*** argv);
+
 // correctly outputs utf8 string
 void sys_output_init(void);
 void sys_output_done(void);

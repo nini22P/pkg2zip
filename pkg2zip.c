@@ -409,6 +409,7 @@ typedef enum {
 int main(int argc, char* argv[])
 {
     sys_output_init();
+    sys_get_command_line(&argc, &argv);
 
     int zipped = 1;
     int listing = 0;

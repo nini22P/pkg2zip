@@ -32,6 +32,41 @@ void sys_output_done(void)
     SetConsoleOutputCP(gOldCP);
 }
 
+void sys_get_command_line(int* argc, char*** argv)
+{
+#if defined(_MSC_VER)
+    #pragma comment(lib, "shell32.lib")
+    #include <shellapi.h>
+
+    int wargc = 0;
+    wchar_t** wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
+    if (wargv == NULL)
+    {
+        sys_error("ERROR: cannot parse command line\n");
+    }
+#else
+    extern int __argc;
+    extern wchar_t** __wargv;
+    int wargc = __argc;
+    wchar_t** wargv = __wargv;
+#endif
+
+    char** uargv = sys_realloc(NULL, sizeof(char*) * wargc);
+    for (int i = 0; i < wargc; i++)
+    {
+        int len = WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, NULL, 0, NULL, NULL);
+        uargv[i] = sys_realloc(NULL, len);
+        WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, uargv[i], len, NULL, NULL);
+    }
+
+#if defined(_MSC_VER)
+    LocalFree(wargv);
+#endif
+
+    *argc = wargc;
+    *argv = uargv;
+}
+
 void sys_output(const char* msg, ...)
 {
     char buffer[1024];
@@ -181,6 +216,12 @@ void sys_output_init(void)
 
 void sys_output_done(void)
 {
+}
+
+void sys_get_command_line(int* argc, char*** argv)
+{
+    (void)argc;
+    (void)argv;
 }
 
 void sys_output(const char* msg, ...)
@@ -348,6 +389,17 @@ void sys_output_progress(uint64_t progress)
 
 int sys_test_dir(const char* const path)
 {
+#if defined(_WIN32)
+    WCHAR wpath[MAX_PATH];
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, MAX_PATH);
+
+    DWORD attr = GetFileAttributesW(wpath);
+    if (attr == INVALID_FILE_ATTRIBUTES)
+    {
+        return 0;
+    }
+    return (attr & FILE_ATTRIBUTE_DIRECTORY) ? 1 : 0;
+#else
     struct stat info;
 
     int statRC = stat( path, &info );
@@ -359,4 +411,5 @@ int sys_test_dir(const char* const path)
     }
 
     return ( info.st_mode & S_IFDIR ) ? 1 : 0;
+#endif
 }
